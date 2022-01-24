@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as resources from "@pulumi/azure-native/resources";
 import * as storage from "@pulumi/azure-native/storage";
 import * as azure from "@pulumi/azure-native";
+import { reactPortfolioPAT } from "./env";
 
 /*
  * TODO: 1. create a mirroring resource group of current 'my-project-resources'
@@ -17,7 +18,7 @@ import * as azure from "@pulumi/azure-native";
 const resourceGroup = new resources.ResourceGroup("my-project-resources-v2");
 
 // Create an Azure resource (Storage Account)
-const storageAccount = new storage.StorageAccount("ab15StorageV2", {
+const storageAccount = new storage.StorageAccount("ab15storagev2", {
   resourceGroupName: resourceGroup.name,
   sku: {
     name: storage.SkuName.Standard_LRS,
@@ -33,7 +34,30 @@ const tableArgs: storage.TableArgs = {
   accountName: storageAccount.name,
 };
 
-const repoTable = new azure.storage.Table(tableName, tableArgs);
+new azure.storage.Table(tableName, tableArgs);
+
+// Create an Azure Static Website
+const portfolioStaticSiteName = "react-portfolio-v2";
+const reactPortfolioRepoUrl = "https://github.com/aburke15/react-portfolio";
+
+const portfolioStaticSiteArgs: azure.web.StaticSiteArgs = {
+  branch: "main",
+  resourceGroupName: resourceGroup.name,
+  buildProperties: {
+    apiLocation: "api",
+    outputLocation: "build",
+    appLocation: "/",
+  },
+  location: resourceGroup.location,
+  name: portfolioStaticSiteName,
+  repositoryToken: reactPortfolioPAT,
+  repositoryUrl: reactPortfolioRepoUrl,
+  sku: {
+    name: "Free",
+  },
+};
+
+new azure.web.StaticSite(portfolioStaticSiteName, portfolioStaticSiteArgs);
 
 // Export the primary key of the Storage Account
 const storageAccountKeys = pulumi
