@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as resources from "@pulumi/azure-native/resources";
 import * as storage from "@pulumi/azure-native/storage";
 import * as azure from "@pulumi/azure-native";
+import * as insights from "@pulumi/azure-native/insights";
 import { reactPortfolioPAT } from "./env";
 
 /*
@@ -57,7 +58,46 @@ const portfolioStaticSiteArgs: azure.web.StaticSiteArgs = {
   },
 };
 
-new azure.web.StaticSite(portfolioStaticSiteName, portfolioStaticSiteArgs);
+const portfolioStaticSite = new azure.web.StaticSite(
+  portfolioStaticSiteName,
+  portfolioStaticSiteArgs
+);
+
+// Create an Azure Web App
+const appServicePlan = new azure.web.AppServicePlan("portfolio-be-asp", {
+  resourceGroupName: resourceGroup.name,
+  kind: "App",
+  sku: {
+    name: "B1",
+    tier: "Basic",
+  },
+});
+
+const appInsights = new insights.Component("portfolio-be-ai", {
+  resourceGroupName: resourceGroup.name,
+  kind: "web",
+  applicationType: insights.ApplicationType.Web,
+});
+
+const portfolioWebAppName = "portfolio-be-v2";
+
+const portfolioWebAppArgs: azure.web.WebAppArgs = {
+  resourceGroupName: resourceGroup.name,
+  serverFarmId: appServicePlan.id,
+  siteConfig: {
+    appSettings: [
+      {
+        name: "APPINSIGHTS_INSTRUMENTATIONKEY",
+        value: appInsights.instrumentationKey,
+      },
+    ],
+  },
+};
+
+const porfolioWebApp = new azure.web.WebApp(
+  portfolioWebAppName,
+  portfolioWebAppArgs
+);
 
 // Export the primary key of the Storage Account
 const storageAccountKeys = pulumi
@@ -67,3 +107,5 @@ const storageAccountKeys = pulumi
   );
 
 export const primaryStorageKey = storageAccountKeys.keys[0].value;
+export const staticSiteEndpoint = `https://${portfolioStaticSite.defaultHostname}`;
+export const webAppEndpoint = `https://${porfolioWebApp.defaultHostName}`;
