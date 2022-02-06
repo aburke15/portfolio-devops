@@ -5,6 +5,7 @@ import * as azure from "@pulumi/azure-native";
 import * as insights from "@pulumi/azure-native/insights";
 import { RegistryArgs } from "@pulumi/azure-native/containerregistry";
 import { TableArgs } from "@pulumi/azure-native/storage";
+import { AppServicePlanArgs } from "@pulumi/azure-native/web";
 
 /*
   TODO: create a resource group
@@ -39,6 +40,7 @@ const registryArgs: RegistryArgs = {
   resourceGroupName: rg.name,
   adminUserEnabled: true,
   location: rg.location,
+  registryName: "ab15registry",
   sku: {
     name: "Basic",
   },
@@ -47,31 +49,31 @@ const registryArgs: RegistryArgs = {
 const acr = new azure.containerregistry.Registry("ab15registry", registryArgs);
 
 // Create an Azure Web App
-// const appServicePlan = new azure.web.AppServicePlan("portfolio-be-asp", {
-//   resourceGroupName: rg.name,
-//   kind: "App",
-//   sku: {
-//     name: "F1",
-//     tier: "Free",
-//   },
-//   location: rg.location,
-// });
+const aspArgs: AppServicePlanArgs = {
+  kind: "app",
+  location: rg.location,
+  name: "ASP-ab15azdemo",
+  resourceGroupName: rg.name,
+  sku: {
+    name: "F1",
+    tier: "Free",
+  },
+};
 
-// const portfolioWebAppName = "portfolio-be";
+const asp = new azure.web.AppServicePlan("ASP-ab15azdemo", aspArgs);
 
-// const portfolioWebAppArgs: azure.web.WebAppArgs = {
-//   resourceGroupName: rg.name,
-//   serverFarmId: appServicePlan.id,
-//   siteConfig: {
-//     appSettings: [],
-//   },
-//   location: rg.location,
-// };
+const webAppArgs: azure.web.WebAppArgs = {
+  resourceGroupName: rg.name,
+  serverFarmId: asp.id,
+  location: rg.location,
+  httpsOnly: true,
+  kind: "app",
+  name: "ab15azdemo",
+  redundancyMode: "None",
+  siteConfig: {},
+};
 
-// const porfolioWebApp = new azure.web.WebApp(
-//   portfolioWebAppName,
-//   portfolioWebAppArgs
-// );
+const webApp = new azure.web.WebApp("ab15azdemo", webAppArgs);
 
 // Export the primary key of the Storage Account
 const storageAccountKeys = pulumi
